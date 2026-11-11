@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Posyandu ILP Digital Puskesmas & Desa</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white; color: black; }
+        }
+        .print-only { display: none; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- LOGIN SCREEN MODAL -->
+    <div id="loginScreen" class="fixed inset-0 bg-slate-900/90 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div class="bg-emerald-700 text-white p-6 text-center">
+                <div class="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-3 text-3xl">
+                    <i class="fa-solid fa-hospital-user"></i>
+                </div>
+                <h2 class="text-xl font-bold">Posyandu ILP Digital</h2>
+                <p class="text-xs text-emerald-100 mt-1">Sistem Terintegrasi Puskesmas & Wilayah Desa</p>
+            </div>
+            
+            <form id="formLogin" onsubmit="handleLogin(event)" class="p-6 space-y-4">
+                <div id="loginAlert" class="hidden p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg"></div>
+                
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Username (Nama Desa / ADMIN)</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-user absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                        <input type="text" id="loginUsername" required placeholder="Contoh: RIAM DURIAN atau ADMIN" class="w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none uppercase">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                        <input type="password" id="loginPassword" required placeholder="123456" class="w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl shadow transition text-sm">
+                        <i class="fa-solid fa-right-to-bracket mr-2"></i> Masuk Sistem
+                    </button>
+                </div>
+
+                <div class="border-t pt-3 text-[11px] text-slate-500 space-y-1">
+                    <p><b>Super Admin Puskesmas:</b> Username <code>ADMIN</code> | Pass: <code>admin123</code></p>
+                    <p><b>Kader Desa:</b> Username NAMA DESA (Contoh: <code>RIAM DURIAN</code>, <code>DAWAK</code>, <code>SUKAJAYA</code>, dll) | Pass: <code>123456</code></p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- NAVBAR HEADER -->
+    <header class="bg-emerald-700 text-white shadow-md no-print sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-3">
+            <div class="flex items-center space-x-3 w-full md:w-auto justify-between md:justify-start">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-white p-2 rounded-lg text-emerald-700 font-bold">
+                        <i class="fa-solid fa-baby text-2xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold leading-tight">Posyandu ILP Digital</h1>
+                        <p class="text-xs text-emerald-100">KMS Digital, Z-Score WHO/Permenkes & Kartu Bantu Balita</p>
+                    </div>
+                </div>
+                <button onclick="logout()" class="md:hidden text-xs bg-emerald-800 px-2.5 py-1 rounded-lg">Keluar</button>
+            </div>
+
+            <div class="flex items-center space-x-3 w-full md:w-auto justify-end">
+                <div id="userInfoBadge" class="bg-emerald-800 text-emerald-100 text-xs px-3 py-1.5 rounded-xl font-medium flex items-center gap-2 border border-emerald-600">
+                    <i class="fa-solid fa-user-shield text-emerald-300"></i>
+                    <span id="currentUserText">Akun Pengguna</span>
+                </div>
+                <button onclick="openConfigModal()" class="bg-emerald-800 hover:bg-emerald-900 text-emerald-100 p-2 rounded-xl text-xs border border-emerald-600" title="Atur Google Sheets URL">
+                    <i class="fa-solid fa-cloud"></i>
+                </button>
+                <button onclick="logout()" class="hidden md:flex bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-xl text-xs font-semibold items-center gap-1.5 shadow">
+                    <i class="fa-solid fa-power-off"></i> Keluar
+                </button>
+            </div>
+        </div>
+        <div class="bg-emerald-900 px-4 py-1 text-[11px] text-emerald-200 flex justify-between items-center border-t border-emerald-800">
+            <div id="cloudStatus" class="flex items-center gap-1.5 font-medium">
+                <span class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span> Status: Standalone / LocalStorage
+            </div>
+            <div>Standard Permenkes No 2 Tahun 2020</div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
+        <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 no-print bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                <div class="relative flex-grow md:w-64">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" id="searchInput" onkeyup="filterBalita()" placeholder="Cari Nama / NIK Balita / Ortu..." class="w-full pl-8 pr-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+
+                <!-- SUPER ADMIN FILTER DESA & POSYANDU -->
+                <div id="superAdminFilters" class="hidden flex flex-wrap items-center gap-2">
+                    <select id="filterDesa" onchange="onAdminDesaFilterChange()" class="text-xs bg-emerald-50 border border-emerald-300 text-emerald-900 font-semibold rounded-lg px-2.5 py-2">
+                        <option value="">-- Semua Desa --</option>
+                    </select>
+                    <select id="filterPosyandu" onchange="filterBalita()" class="text-xs bg-emerald-50 border border-emerald-300 text-emerald-900 font-semibold rounded-lg px-2.5 py-2">
+                        <option value="">-- Semua Posyandu --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap gap-2 justify-end">
+                <button onclick="openAddBalitaModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-lg text-xs font-semibold shadow flex items-center gap-1.5">
+                    <i class="fa-solid fa-plus"></i> Tambah Data Balita
+                </button>
+                <button onclick="exportAllToCSV()" class="bg-slate-700 hover:bg-slate-800 text-white px-3.5 py-2 rounded-lg text-xs font-semibold shadow flex items-center gap-1.5">
+                    <i class="fa-solid fa-file-excel"></i> Ekspor CSV
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- SIDEBAR LIST BALITA -->
+            <div class="lg:col-span-4 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden no-print flex flex-col h-[750px]">
+                <div class="bg-slate-100 px-4 py-3 border-b flex justify-between items-center">
+                    <h2 class="font-bold text-slate-700 text-xs uppercase">
+                        <i class="fa-solid fa-users text-emerald-600 mr-1.5"></i>Daftar Balita (<span id="totalBalitaCount">0</span>)
+                    </h2>
+                </div>
+                <div id="balitaList" class="divide-y divide-slate-100 overflow-y-auto flex-grow"></div>
+            </div>
+
+            <!-- DETAIL PANEL -->
+            <div class="lg:col-span-8 space-y-6">
+                <div id="emptyState" class="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400 no-print">
+                    <i class="fa-solid fa-chart-line text-6xl mb-4 text-slate-300"></i>
+                    <h3 class="text-lg font-semibold text-slate-600">Belum Ada Balita Dipilih</h3>
+                    <p class="text-xs text-slate-400 mt-1">Pilih balita di panel kiri untuk melihat Kartu Bantu & KMS Digital.</p>
+                </div>
+
+                <div id="balitaDetailCard" class="hidden space-y-6">
+                    <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-2 h-full bg-emerald-500"></div>
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h2 id="viewNamaAnak" class="text-2xl font-bold text-slate-800">Nama Balita</h2>
+                                    <span id="viewJenisKelamin" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800">L</span>
+                                </div>
+                                <p class="text-xs text-slate-500 mt-1">
+                                    NIK: <span id="viewNik" class="font-mono">1234567890</span> • Lahir: <span id="viewTglLahir">01/01/2023</span> (<span id="viewUmurSekarang" class="font-semibold text-emerald-600">0 bulan</span>)
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-2 no-print flex-wrap">
+                                <button onclick="openEditBalitaModal()" class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold"><i class="fa-solid fa-pen"></i> Edit</button>
+                                <button onclick="openChartModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold"><i class="fa-solid fa-chart-area"></i> Grafik KMS</button>
+                                <button onclick="openAddKunjunganModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold"><i class="fa-solid fa-plus"></i> Kunjungan</button>
+                                <button onclick="window.print()" class="bg-slate-100 border text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold"><i class="fa-solid fa-print"></i> Cetak</button>
+                                <button onclick="deleteCurrentBalita()" class="text-red-500 p-2"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 pt-4 border-t text-xs text-slate-600">
+                            <div><span class="text-slate-400 block">Orang Tua:</span><strong id="viewNamaOrtu">-</strong></div>
+                            <div><span class="text-slate-400 block">No. HP:</span><strong id="viewNoHp">-</strong></div>
+                            <div><span class="text-slate-400 block">Desa & Posyandu:</span><strong id="viewPosyanduDesa" class="text-emerald-700">-</strong></div>
+                            <div><span class="text-slate-400 block">Alamat:</span><strong id="viewAlamat">-</strong></div>
+                        </div>
+                    </div>
+
+                    <!-- REKAP Z-SCORE SUMMARY -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 no-print">
+                        <div class="bg-white p-3.5 rounded-xl border text-center">
+                            <span class="text-[11px] text-slate-400 font-semibold block uppercase">BB / U</span>
+                            <div id="summaryBbuBadge" class="mt-1 text-xs font-bold py-1 px-2 rounded-md bg-slate-100">Belum ada data</div>
+                            <span id="summaryBbuZ" class="text-[10px] text-slate-400 block mt-1">Z-Score: -</span>
+                        </div>
+                        <div class="bg-white p-3.5 rounded-xl border text-center">
+                            <span class="text-[11px] text-slate-400 font-semibold block uppercase">TB / U (Stunting)</span>
+                            <div id="summaryTbuBadge" class="mt-1 text-xs font-bold py-1 px-2 rounded-md bg-slate-100">Belum ada data</div>
+                            <span id="summaryTbuZ" class="text-[10px] text-slate-400 block mt-1">Z-Score: -</span>
+                        </div>
+                        <div class="bg-white p-3.5 rounded-xl border text-center">
+                            <span class="text-[11px] text-slate-400 font-semibold block uppercase">BB / TB (Wasting)</span>
+                            <div id="summaryBbtbBadge" class="mt-1 text-xs font-bold py-1 px-2 rounded-md bg-slate-100">Belum ada data</div>
+                            <span id="summaryBbtbZ" class="text-[10px] text-slate-400 block mt-1">Z-Score: -</span>
+                        </div>
+                        <div class="bg-white p-3.5 rounded-xl border text-center">
+                            <span class="text-[11px] text-slate-400 font-semibold block uppercase">LK / U</span>
+                            <div id="summaryLkuBadge" class="mt-1 text-xs font-bold py-1 px-2 rounded-md bg-slate-100">Belum ada data</div>
+                            <span id="summaryLkuZ" class="text-[10px] text-slate-400 block mt-1">Z-Score: -</span>
+                        </div>
+                    </div>
+
+                    <!-- TABEL KUNJUNGAN -->
+                    <div class="bg-white rounded-xl border shadow-sm overflow-hidden">
+                        <div class="bg-slate-50 px-4 py-3 border-b"><h3 class="font-bold text-slate-700 text-xs">Riwayat Penimbangan & Z-Score</h3></div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead class="bg-slate-100 text-slate-700 uppercase border-b">
+                                    <tr>
+                                        <th class="p-2.5">Tgl</th>
+                                        <th class="p-2.5">Umur</th>
+                                        <th class="p-2.5">Ukuran</th>
+                                        <th class="p-2.5">BB/U</th>
+                                        <th class="p-2.5">TB/U</th>
+                                        <th class="p-2.5">BB/TB</th>
+                                        <th class="p-2.5">LK/U</th>
+                                        <th class="p-2.5">ILP</th>
+                                        <th class="p-2.5 text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="kunjunganTableBody" class="divide-y"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL CONFIG CLOUD -->
+    <div id="modalConfig" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50 p-4 no-print">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-lg p-6 space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-slate-800 text-sm"><i class="fa-solid fa-cloud text-emerald-600 mr-2"></i>Pengaturan Database Google Drive</h3>
+                <button onclick="closeModal('modalConfig')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">URL Google Apps Script Web App</label>
+                <input type="url" id="configUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full border rounded-lg p-2.5 text-xs">
+                <p class="text-[11px] text-slate-500 mt-1">Masukkan URL Apps Script agar semua data terhubung langsung ke Google Sheets akun Puskesmas Anda.</p>
+            </div>
+            <div class="flex justify-end gap-2 pt-2 border-t">
+                <button onclick="closeModal('modalConfig')" class="px-3 py-1.5 bg-slate-200 text-xs rounded-lg font-semibold">Tutup</button>
+                <button onclick="saveCloudConfig()" class="px-3 py-1.5 bg-emerald-600 text-white text-xs rounded-lg font-semibold">Simpan URL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL TAMBAH/EDIT BALITA -->
+    <div id="modalBalita" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50 p-4 overflow-y-auto no-print">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden my-8">
+            <div class="bg-emerald-700 text-white px-5 py-4 flex justify-between items-center">
+                <h3 class="font-bold text-base" id="modalBalitaTitle">Tambah Data Identitas Balita</h3>
+                <button onclick="closeModal('modalBalita')" class="text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="formBalita" onsubmit="saveBalita(event)" class="p-5 space-y-4 text-xs">
+                <input type="hidden" id="editBalitaId">
+                <div><label class="block font-medium mb-1">NIK Balita (16 digit) *</label><input type="text" inputmode="numeric" pattern="[0-9]{16}" minlength="16" maxlength="16" title="NIK harus 16 digit angka" id="inputNik" required class="w-full border rounded-lg p-2.5"></div>
+                <div><label class="block font-medium mb-1">Nama Lengkap Balita *</label><input type="text" id="inputNama" required class="w-full border rounded-lg p-2.5"></div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block font-medium mb-1">Tgl Lahir *</label><input type="date" id="inputTglLahir" required class="w-full border rounded-lg p-2.5"></div>
+                    <div><label class="block font-medium mb-1">Jenis Kelamin *</label><select id="inputJk" class="w-full border rounded-lg p-2.5 bg-white"><option value="L">Laki-laki (L)</option><option value="P">Perempuan (P)</option></select></div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium mb-1">Nama Desa *</label>
+                        <select id="inputDesa" required onchange="onModalDesaChange()" class="w-full border rounded-lg p-2.5 bg-white">
+                            <option value="RIAM DURIAN">RIAM DURIAN</option>
+                            <option value="DAWAK">DAWAK</option>
+                            <option value="SUKAJAYA">SUKAJAYA</option>
+                            <option value="KINJIL">KINJIL</option>
+                            <option value="SAKABULIN">SAKABULIN</option>
+                            <option value="TEMPAYUNG">TEMPAYUNG</option>
+                            <option value="SUMBER MUKTI">SUMBER MUKTI</option>
+                            <option value="BABUAL BABOTI">BABUAL BABOTI</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-medium mb-1">Nama Posyandu *</label>
+                        <select id="inputPosyandu" required class="w-full border rounded-lg p-2.5 bg-white">
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block font-medium mb-1">Nama Orang Tua / Ibu *</label><input type="text" id="inputNamaOrtu" required class="w-full border rounded-lg p-2.5"></div>
+                    <div><label class="block font-medium mb-1">No. HP / WA</label><input type="tel" id="inputNoHp" class="w-full border rounded-lg p-2.5"></div>
+                </div>
+                <div><label class="block font-medium mb-1">Alamat Lengkap & RT/RW</label><textarea id="inputAlamat" rows="2" class="w-full border rounded-lg p-2.5"></textarea></div>
+                <div class="flex justify-end gap-2 pt-3 border-t"><button type="button" onclick="closeModal('modalBalita')" class="px-4 py-2 border rounded-lg">Batal</button><button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg font-semibold">Simpan Data Balita</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL INPUT/EDIT KUNJUNGAN BULANAN ILP -->
+    <div id="modalKunjungan" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50 p-4 overflow-y-auto no-print">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden my-8 max-h-[92vh] flex flex-col">
+            <div class="bg-emerald-700 text-white px-5 py-3 flex justify-between items-center">
+                <h3 class="font-bold text-sm" id="modalKunjunganTitle"><i class="fa-solid fa-calculator mr-2"></i>Catat Kunjungan & Perhitungan Z-Score Realtime</h3>
+                <button onclick="closeModal('modalKunjungan')" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <form id="formKunjungan" onsubmit="saveKunjungan(event)" class="p-5 space-y-4 text-xs overflow-y-auto flex-grow">
+                <input type="hidden" id="editKunjunganId" value="">
+                
+                <div class="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                    <div>
+                        <label class="block font-medium text-slate-700 mb-1">Tanggal Kunjungan *</label>
+                        <input type="date" id="inputTglKunjungan" required onchange="onAnthropometryChange()" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-700 mb-1">Umur saat Kunjungan (Bulan)</label>
+                        <input type="number" id="inputUmurKunjungan" readonly class="w-full border border-slate-300 bg-slate-100 rounded-lg p-2 font-bold text-emerald-700">
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-slate-800 border-b border-slate-200 pb-1 mb-2 text-emerald-700 flex items-center gap-1.5">
+                        <i class="fa-solid fa-weight-scale"></i> 1. Pengukuran Antropometri
+                    </h4>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div>
+                            <label class="block text-slate-600 mb-1">Berat Badan (kg) *</label>
+                            <input type="number" step="0.01" id="inputBb" required oninput="onAnthropometryChange()" placeholder="8.5" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-slate-600 mb-1">Tinggi/Panjang (cm) *</label>
+                            <input type="number" step="0.1" id="inputTb" required oninput="onAnthropometryChange()" placeholder="72.0" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-slate-600 mb-1">Lingkar Kepala (cm)</label>
+                            <input type="number" step="0.1" id="inputLk" oninput="onAnthropometryChange()" placeholder="43.5" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-slate-600 mb-1">LiLA (cm)</label>
+                            <input type="number" step="0.1" id="inputLila" placeholder="13.5" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LIVE PREVIEW Z-SCORE BADGES -->
+                <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
+                    <h5 class="font-bold text-indigo-900 mb-1 flex items-center gap-1">
+                        <i class="fa-solid fa-wand-magic-sparkles text-indigo-600"></i> Hasil Perhitungan Z-Score Otomatis (Permenkes 2020)
+                    </h5>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px] mt-2">
+                        <div class="bg-white p-2 rounded border border-indigo-100">
+                            <span class="text-slate-400 block">BB / U:</span>
+                            <span id="previewBbu" class="font-bold text-slate-700">-</span>
+                        </div>
+                        <div class="bg-white p-2 rounded border border-indigo-100">
+                            <span class="text-slate-400 block">TB / U (Stunting):</span>
+                            <span id="previewTbu" class="font-bold text-slate-700">-</span>
+                        </div>
+                        <div class="bg-white p-2 rounded border border-indigo-100">
+                            <span class="text-slate-400 block">BB / TB (Wasting):</span>
+                            <span id="previewBbtb" class="font-bold text-slate-700">-</span>
+                        </div>
+                        <div class="bg-white p-2 rounded border border-indigo-100">
+                            <span class="text-slate-400 block">LK / U:</span>
+                            <span id="previewLku" class="font-bold text-slate-700">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-slate-800 border-b border-slate-200 pb-1 mb-2 text-emerald-700 flex items-center gap-1.5">
+                        <i class="fa-solid fa-chart-line"></i> 2. Status Pertumbuhan Buku KIA (N/T/O/B)
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-slate-600 mb-1">Status Penimbangan Buku KIA</label>
+                            <select id="inputStatusPertumbuhan" class="w-full border border-slate-300 rounded-lg p-2 bg-white">
+                                <option value="N">N - Naik (Sesuai Kurva)</option>
+                                <option value="T">T - Tidak Naik / Tetap / Turun</option>
+                                <option value="O">O - Tidak Ditimbang Bln Lalu</option>
+                                <option value="B">B - Baru Pertama Kali</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-600 mb-1">Indikasi KBM / Garis Merah</label>
+                            <select id="inputKbm" class="w-full border border-slate-300 rounded-lg p-2 bg-white">
+                                <option value="Tidak">Tidak (Normal)</option>
+                                <option value="BGM">BGM (Bawah Garis Merah)</option>
+                                <option value="KBM">KBM (2x Tidak Naik berturut-turut)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-slate-800 border-b border-slate-200 pb-1 mb-2 text-emerald-700 flex items-center gap-1.5">
+                        <i class="fa-solid fa-vial-virus"></i> 3. Paket Skrining & Intervensi Kesehatan ILP
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div class="space-y-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                            <label class="font-semibold block text-slate-700">Imunisasi & Suplementasi:</label>
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="checkVitA" class="rounded text-emerald-600">
+                                <label for="checkVitA">Pemberian Vitamin A</label>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="checkObatCacing" class="rounded text-emerald-600">
+                                <label for="checkObatCacing">Pemberian Obat Cacing</label>
+                            </div>
+                            <div class="mt-2">
+                                <label class="block text-slate-600 mb-1">Imunisasi Rutin Hari Ini:</label>
+                                <input type="text" id="inputImunisasi" placeholder="DPT-HB-Hib 3" class="w-full border border-slate-300 rounded p-1.5 bg-white">
+                            </div>
+                        </div>
+
+                        <div class="space-y-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                            <label class="font-semibold block text-slate-700">Skrining TBC Balita:</label>
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="tbcBatuk" class="rounded text-red-500">
+                                <label for="tbcBatuk">Batuk ≥ 2 minggu / Berulang</label>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="tbcDemam" class="rounded text-red-500">
+                                <label for="tbcDemam">Demam ≥ 2 minggu tanpa sebab</label>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="tbcKontak" class="rounded text-red-500">
+                                <label for="tbcKontak">Kontak erat pasien TBC Dewasa</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-slate-600 mb-1">Skrining Perkembangan (SDIDTK/KMSP)</label>
+                            <select id="inputSdidtk" class="w-full border border-slate-300 rounded-lg p-2 bg-white">
+                                <option value="Sesuai">Sesuai Umur (S)</option>
+                                <option value="Meragukan">Meragukan (M) - Perlu Stimulasi</option>
+                                <option value="Penyimpangan">Penyimpangan (P) - Rujuk</option>
+                                <option value="Belum Dibatasi">Belum Dibatasi</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-600 mb-1">Edukasi / Konseling</label>
+                            <input type="text" id="inputEdukasi" placeholder="Konseling MP-ASI Protein Hewani" class="w-full border border-slate-300 rounded-lg p-2 bg-white">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-3 flex justify-end gap-2 border-t border-slate-200">
+                    <button type="button" onclick="closeModal('modalKunjungan')" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-600">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold">Simpan Rekam Kunjungan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL GRAFIK PERTUMBUHAN KMS DIGITAL -->
+    <div id="modalChart" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50 p-4 overflow-y-auto no-print">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl overflow-hidden my-6">
+            <div class="bg-indigo-800 text-white px-5 py-4 flex justify-between items-center">
+                <div>
+                    <h3 class="font-bold text-base flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line"></i> Grafik Pertumbuhan Interaktif (KMS Digital)
+                    </h3>
+                    <p class="text-xs text-indigo-200" id="chartSubTitle">Grafik Pertumbuhan WHO Balita</p>
+                </div>
+                <button onclick="closeModal('modalChart')" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            
+            <div class="p-5 space-y-4">
+                <div class="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
+                    <button onclick="switchChartType('BBU')" id="btnChartBBU" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white transition">BB / U (Berat vs Umur)</button>
+                    <button onclick="switchChartType('TBU')" id="btnChartTBU" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition">TB / U (Stunting Curve)</button>
+                    <button onclick="switchChartType('BBTB')" id="btnChartBBTB" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition">BB / TB (Wasting Curve)</button>
+                    <button onclick="switchChartType('LKU')" id="btnChartLKU" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition">LK / U (Lingkar Kepala)</button>
+                </div>
+                <div class="relative w-full h-[400px] bg-slate-50 p-2 rounded-lg border border-slate-200">
+                    <canvas id="kmsGrowthChart"></canvas>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-2 text-[11px] text-center pt-2">
+                    <div class="p-1.5 rounded bg-red-50 border border-red-200 text-red-700 font-medium">+3 SD (Sangat Lebih)</div>
+                    <div class="p-1.5 rounded bg-amber-50 border border-amber-200 text-amber-700 font-medium">+2 SD (Batas Atas)</div>
+                    <div class="p-1.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold">0 SD (Median / Target)</div>
+                    <div class="p-1.5 rounded bg-amber-50 border border-amber-200 text-amber-700 font-medium">-2 SD (Batas Stunted / Wasted)</div>
+                    <div class="p-1.5 rounded bg-red-50 border border-red-200 text-red-700 font-medium">-3 SD (Severely Stunted/Wasted)</div>
+                </div>
+            </div>
+            
+            <div class="bg-slate-50 px-5 py-3 border-t border-slate-200 flex justify-end">
+                <button onclick="closeModal('modalChart')" class="px-4 py-2 bg-slate-700 text-white rounded-lg text-xs font-semibold">Tutup Grafik</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT UTAMA APPLICATION CORE -->
+    <script>
+        const DESA_POSYANDU_MAP = {
+            "RIAM DURIAN": ["AKASIA", "DHARMA BAKTI"],
+            "DAWAK": ["BELIBIS"],
+            "SUKAJAYA": ["ELLA MEKAR SARI"],
+            "KINJIL": ["RAMPAI"],
+            "SAKABULIN": ["KENANGA"],
+            "TEMPAYUNG": ["CEMPAKA"],
+            "SUMBER MUKTI": ["SEROJA"],
+            "BABUAL BABOTI": ["KAMBOJA"]
+        };
+
+        const WHO_DATA = {"AGE":{"BBU":{"L":[[2.1,2.5,2.9,3.3,3.9,4.4,5.0],[2.9,3.4,3.9,4.5,5.1,5.8,6.6],[3.8,4.3,4.9,5.6,6.3,7.1,8.0],[4.4,5.0,5.7,6.4,7.2,8.0,9.0],[4.9,5.6,6.2,7.0,7.8,8.7,9.7],[5.3,6.0,6.7,7.5,8.4,9.3,10.4],[5.7,6.4,7.1,7.9,8.8,9.8,10.9],[5.9,6.7,7.4,8.3,9.2,10.3,11.4],[6.2,6.9,7.7,8.6,9.6,10.7,11.9],[6.4,7.1,8.0,8.9,9.9,11.0,12.3],[6.6,7.4,8.2,9.2,10.2,11.4,12.7],[6.8,7.6,8.4,9.4,10.5,11.7,13.0],[6.9,7.7,8.6,9.6,10.8,12.0,13.3],[7.1,7.9,8.8,9.9,11.0,12.3,13.7],[7.2,8.1,9.0,10.1,11.3,12.6,14.0],[7.4,8.3,9.2,10.3,11.5,12.8,14.3],[7.5,8.4,9.4,10.5,11.7,13.1,14.6],[7.7,8.6,9.6,10.7,12.0,13.4,14.9],[7.8,8.8,9.8,10.9,12.2,13.7,15.3],[8.0,8.9,10.0,11.1,12.5,13.9,15.6],[8.1,9.1,10.1,11.3,12.7,14.2,15.9],[8.2,9.2,10.3,11.5,12.9,14.5,16.2],[8.4,9.4,10.5,11.8,13.2,14.7,16.5],[8.5,9.5,10.7,12.0,13.4,15.0,16.8],[8.6,9.7,10.8,12.2,13.6,15.3,17.1],[8.8,9.8,11.0,12.4,13.9,15.5,17.5],[8.9,10.0,11.2,12.5,14.1,15.8,17.8],[9.0,10.1,11.3,12.7,14.3,16.1,18.1],[9.1,10.2,11.5,12.9,14.5,16.3,18.4],[9.2,10.4,11.7,13.1,14.8,16.6,18.7],[9.4,10.5,11.8,13.3,15.0,16.9,19.0],[9.5,10.7,12.0,13.5,15.2,17.1,19.3],[9.6,10.8,12.1,13.7,15.4,17.4,19.6],[9.7,10.9,12.3,13.8,15.6,17.6,19.9],[9.8,11.0,12.4,14.0,15.8,17.8,20.2],[9.9,11.2,12.6,14.2,16.0,18.1,20.4],[10.0,11.3,12.7,14.3,16.2,18.3,20.7],[10.1,11.4,12.9,14.5,16.4,18.6,21.0],[10.2,11.5,13.0,14.7,16.6,18.8,21.3],[10.3,11.6,13.1,14.8,16.8,19.0,21.6],[10.4,11.8,13.3,15.0,17.0,19.3,21.9],[10.5,11.9,13.4,15.2,17.2,19.5,22.1],[10.6,12.0,13.6,15.3,17.4,19.7,22.4],[10.7,12.1,13.7,15.5,17.6,20.0,22.7],[10.8,12.2,13.8,15.7,17.8,20.2,23.0],[10.9,12.4,14.0,15.8,18.0,20.5,23.3],[11.0,12.5,14.1,16.0,18.2,20.7,23.6],[11.1,12.6,14.3,16.2,18.4,20.9,23.9],[11.2,12.7,14.4,16.3,18.6,21.2,24.2],[11.3,12.8,14.5,16.5,18.8,21.4,24.5],[11.4,12.9,14.7,16.7,19.0,21.7,24.8],[11.5,13.1,14.8,16.8,19.2,21.9,25.1],[11.6,13.2,15.0,17.0,19.4,22.2,25.4],[11.7,13.3,15.1,17.2,19.6,22.4,25.7],[11.8,13.4,15.2,17.3,19.8,22.7,26.0],[11.9,13.5,15.4,17.5,20.0,22.9,26.3],[12.0,13.6,15.5,17.7,20.2,23.2,26.6],[12.1,13.7,15.6,17.8,20.4,23.4,26.9],[12.2,13.8,15.8,18.0,20.6,23.7,27.2],[12.3,14.0,15.9,18.2,20.8,23.9,27.6],[12.4,14.1,16.0,18.3,21.0,24.2,27.9]],"P":[[2,2.4,2.8,3.2,3.7,4.2,4.8],[2.67,3.1,3.58,4.07,4.68,5.3,6.03],[3.33,3.8,4.37,4.93,5.67,6.4,7.27],[4,4.5,5.15,5.8,6.65,7.5,8.5],[4.37,4.9,5.6,6.3,7.2,8.1,9.2],[4.73,5.3,6.05,6.8,7.75,8.7,9.9],[5.1,5.7,6.5,7.3,8.3,9.3,10.6],[5.33,5.97,6.78,7.6,8.65,9.7,11.07],[5.57,6.23,7.07,7.9,9.0,10.1,11.53],[5.8,6.5,7.35,8.2,9.35,10.5,12],[5.97,6.67,7.55,8.43,9.63,10.83,12.33],[6.13,6.83,7.75,8.67,9.92,11.17,12.67],[6.3,7,7.95,8.9,10.2,11.5,13],[6.45,7.18,8.15,9.12,10.45,11.78,13.33],[6.6,7.37,8.35,9.33,10.7,12.07,13.67],[6.75,7.55,8.55,9.55,10.95,12.35,14.0],[6.9,7.73,8.75,9.77,11.2,12.63,14.33],[7.05,7.92,8.95,9.98,11.45,12.92,14.67],[7.2,8.1,9.15,10.2,11.7,13.2,15],[7.35,8.25,9.33,10.42,11.94,13.47,15.3],[7.5,8.4,9.52,10.63,12.18,13.73,15.6],[7.65,8.55,9.7,10.85,12.43,14.0,15.9],[7.8,8.7,9.88,11.07,12.67,14.27,16.2],[7.95,8.85,10.07,11.28,12.91,14.53,16.5],[8.1,9,10.25,11.5,13.15,14.8,16.8],[8.22,9.15,10.43,11.7,13.39,15.08,17.12],[8.35,9.3,10.6,11.9,13.62,15.35,17.45],[8.47,9.45,10.77,12.1,13.86,15.62,17.77],[8.6,9.6,10.95,12.3,14.1,15.9,18.1],[8.72,9.75,11.12,12.5,14.34,16.18,18.43],[8.85,9.9,11.3,12.7,14.58,16.45,18.75],[8.97,10.05,11.48,12.9,14.81,16.73,19.07],[9.1,10.2,11.65,13.1,15.05,17.0,19.4],[9.22,10.35,11.83,13.3,15.29,17.28,19.73],[9.35,10.5,12.0,13.5,15.53,17.55,20.05],[9.47,10.65,12.18,13.7,15.76,17.83,20.38],[9.6,10.8,12.35,13.9,16.0,18.1,20.7],[9.71,10.93,12.5,14.08,16.23,18.38,21.05],[9.82,11.05,12.66,14.27,16.47,18.67,21.4],[9.93,11.18,12.81,14.45,16.7,18.95,21.75],[10.03,11.3,12.97,14.63,16.93,19.23,22.1],[10.14,11.43,13.12,14.82,17.17,19.52,22.45],[10.25,11.55,13.28,15.0,17.4,19.8,22.8],[10.36,11.68,13.43,15.18,17.63,20.08,23.15],[10.47,11.8,13.58,15.37,17.87,20.37,23.5],[10.57,11.93,13.74,15.55,18.1,20.65,23.85],[10.68,12.05,13.89,15.73,18.33,20.93,24.2],[10.79,12.18,14.05,15.92,18.57,21.22,24.55],[10.9,12.3,14.2,16.1,18.8,21.5,24.9],[11.0,12.42,14.35,16.28,19.03,21.78,25.26],[11.1,12.53,14.49,16.45,19.26,22.07,25.62],[11.2,12.65,14.64,16.62,19.49,22.35,25.97],[11.3,12.77,14.78,16.8,19.72,22.63,26.33],[11.4,12.88,14.93,16.98,19.95,22.92,26.69],[11.5,13.0,15.07,17.15,20.17,23.2,27.05],[11.6,13.12,15.22,17.32,20.4,23.48,27.41],[11.7,13.23,15.37,17.5,20.63,23.77,27.77],[11.8,13.35,15.51,17.68,20.86,24.05,28.12],[11.9,13.47,15.66,17.85,21.09,24.33,28.48],[12.0,13.58,15.8,18.02,21.32,24.62,28.84],[12.1,13.7,15.95,18.2,21.55,24.9,29.2]]},"TBU":{"L":[[44.2,46.1,48.0,49.9,51.8,53.7,55.6],[48.9,50.8,52.8,54.7,56.7,58.6,60.6],[52.4,54.4,56.4,58.4,60.4,62.4,64.4],[55.3,57.3,59.4,61.4,63.5,65.5,67.6],[57.6,59.7,61.8,63.9,66.0,68.0,70.1],[59.6,61.7,63.8,65.9,68.0,70.1,72.2],[61.2,63.3,65.5,67.6,69.8,71.9,74.0],[62.7,64.8,67.0,69.2,71.3,73.5,75.7],[64.0,66.2,68.4,70.6,72.8,75.0,77.2],[65.2,67.5,69.7,72.0,74.2,76.5,78.7],[66.4,68.7,71.0,73.3,75.6,77.9,80.1],[67.6,69.9,72.2,74.5,76.9,79.2,81.5],[68.6,71.0,73.4,75.7,78.1,80.5,82.9],[69.6,72.1,74.5,76.9,79.3,81.8,84.2],[70.6,73.1,75.6,78.0,80.5,83.0,85.5],[71.6,74.1,76.6,79.1,81.7,84.2,86.7],[72.5,75.0,77.6,80.2,82.8,85.4,88.0],[73.3,76.0,78.6,81.2,83.9,86.5,89.2],[74.2,76.9,79.6,82.3,85.0,87.7,90.4],[75.0,77.7,80.5,83.2,86.0,88.8,91.5],[75.8,78.6,81.4,84.2,87.0,89.8,92.6],[76.5,79.4,82.3,85.1,88.0,90.9,93.8],[77.2,80.2,83.1,86.0,89.0,91.9,94.9],[78.0,81.0,83.9,86.9,89.9,92.9,95.9],[78.0,81.0,84.1,87.1,90.2,93.2,96.3],[78.6,81.7,84.9,88.0,91.1,94.2,97.3],[79.3,82.5,85.6,88.8,92.0,95.2,98.3],[79.9,83.1,86.4,89.6,92.9,96.1,99.3],[80.5,83.8,87.1,90.4,93.7,97.0,100.3],[81.1,84.5,87.8,91.2,94.5,97.9,101.2],[81.7,85.1,88.5,91.9,95.3,98.7,102.1],[82.3,85.7,89.2,92.7,96.1,99.6,103.0],[82.8,86.4,89.9,93.4,96.9,100.4,103.9],[83.4,86.9,90.5,94.1,97.6,101.2,104.8],[83.9,87.5,91.1,94.8,98.4,102.0,105.6],[84.4,88.1,91.8,95.4,99.1,102.7,106.4],[85.0,88.7,92.4,96.1,99.8,103.5,107.2],[85.5,89.2,93.0,96.7,100.5,104.2,108.0],[86.0,89.8,93.6,97.4,101.2,105.0,108.8],[86.5,90.3,94.2,98.0,101.8,105.7,109.5],[87.0,90.9,94.7,98.6,102.5,106.4,110.3],[87.5,91.4,95.3,99.2,103.2,107.1,111.0],[88.0,91.9,95.9,99.9,103.8,107.8,111.7],[88.4,92.4,96.4,100.4,104.5,108.5,112.5],[88.9,93.0,97.0,101.0,105.1,109.1,113.2],[89.4,93.5,97.5,101.6,105.7,109.8,113.9],[89.8,94.0,98.1,102.2,106.3,110.4,114.6],[90.3,94.4,98.6,102.8,106.9,111.1,115.2],[90.7,94.9,99.1,103.3,107.5,111.7,115.9],[91.2,95.4,99.7,103.9,108.1,112.4,116.6],[91.6,95.9,100.2,104.4,108.7,113.0,117.3],[92.1,96.4,100.7,105.0,109.3,113.6,117.9],[92.5,96.9,101.2,105.6,109.9,114.2,118.6],[93.0,97.4,101.7,106.1,110.5,114.9,119.2],[93.4,97.8,102.3,106.7,111.1,115.5,119.9],[93.9,98.3,102.8,107.2,111.7,116.1,120.6],[94.3,98.8,103.3,107.8,112.3,116.7,121.2],[94.7,99.3,103.8,108.3,112.8,117.4,121.9],[95.2,99.7,104.3,108.9,113.4,118.0,122.6],[95.6,100.2,104.8,109.4,114.0,118.6,123.2],[96.1,100.7,105.3,110.0,114.6,119.2,123.9]],"P":[[43.6,45.4,47.3,49.1,51.0,52.9,54.7],[47.8,49.8,51.7,53.7,55.6,57.6,59.5],[51.0,53.0,55.0,57.1,59.1,61.1,63.2],[53.5,55.6,57.7,59.8,61.9,64.0,66.1],[55.6,57.8,59.9,62.1,64.3,66.4,68.6],[57.4,59.6,61.8,64.0,66.2,68.5,70.7],[58.9,61.2,63.5,65.7,68.0,70.3,72.5],[60.3,62.7,65.0,67.3,69.6,71.9,74.2],[61.7,64.0,66.4,68.7,71.1,73.5,75.8],[62.9,65.3,67.7,70.1,72.6,75.0,77.4],[64.1,66.5,69.0,71.5,73.9,76.4,78.9],[65.2,67.7,70.3,72.8,75.3,77.8,80.3],[66.3,68.9,71.4,74.0,76.6,79.2,81.7],[67.3,70.0,72.6,75.2,77.8,80.5,83.1],[68.3,71.0,73.7,76.4,79.1,81.7,84.4],[69.3,72.0,74.8,77.5,80.2,83.0,85.7],[70.2,73.0,75.8,78.6,81.4,84.2,87.0],[71.1,74.0,76.8,79.7,82.5,85.4,88.2],[72.0,74.9,77.8,80.7,83.6,86.5,89.4],[72.8,75.8,78.8,81.7,84.7,87.6,90.6],[73.7,76.7,79.7,82.7,85.7,88.7,91.7],[74.5,77.5,80.6,83.7,86.7,89.8,92.9],[75.2,78.4,81.5,84.6,87.7,90.8,94.0],[76.0,79.2,82.3,85.5,88.7,91.9,95.0],[76.0,79.3,82.5,85.7,88.9,92.2,95.4],[76.8,80.0,83.3,86.6,89.9,93.1,96.4],[77.5,80.8,84.1,87.4,90.8,94.1,97.4],[78.1,81.5,84.9,88.3,91.7,95.0,98.4],[78.8,82.2,85.7,89.1,92.5,96.0,99.4],[79.5,82.9,86.4,89.9,93.4,96.9,100.3],[80.1,83.6,87.1,90.7,94.2,97.7,101.3],[80.7,84.3,87.9,91.4,95.0,98.6,102.2],[81.3,84.9,88.6,92.2,95.8,99.4,103.1],[81.9,85.6,89.3,92.9,96.6,100.3,103.9],[82.5,86.2,89.9,93.6,97.4,101.1,104.8],[83.1,86.8,90.6,94.4,98.1,101.9,105.6],[83.6,87.4,91.2,95.1,98.9,102.7,106.5],[84.2,88.0,91.9,95.7,99.6,103.4,107.3],[84.7,88.6,92.5,96.4,100.3,104.2,108.1],[85.3,89.2,93.1,97.1,101.0,105.0,108.9],[85.8,89.8,93.8,97.7,101.7,105.7,109.7],[86.3,90.4,94.4,98.4,102.4,106.4,110.5],[86.8,90.9,95.0,99.0,103.1,107.2,111.2],[87.4,91.5,95.6,99.7,103.8,107.9,112.0],[87.9,92.0,96.2,100.3,104.5,108.6,112.7],[88.4,92.5,96.7,100.9,105.1,109.3,113.5],[88.9,93.1,97.3,101.5,105.8,110.0,114.2],[89.3,93.6,97.9,102.1,106.4,110.7,114.9],[89.8,94.1,98.4,102.7,107.0,111.3,115.7],[90.3,94.6,99.0,103.3,107.7,112.0,116.4],[90.7,95.1,99.5,103.9,108.3,112.7,117.1],[91.2,95.6,100.1,104.5,108.9,113.3,117.7],[91.7,96.1,100.6,105.0,109.5,114.0,118.4],[92.1,96.6,101.1,105.6,110.1,114.6,119.1],[92.6,97.1,101.6,106.2,110.7,115.2,119.8],[93.0,97.6,102.2,106.7,111.3,115.9,120.4],[93.4,98.1,102.7,107.3,111.9,116.5,121.1],[93.9,98.5,103.2,107.8,112.5,117.1,121.8],[94.3,99.0,103.7,108.4,113.0,117.7,122.4],[94.7,99.5,104.2,108.9,113.6,118.3,123.1],[95.2,99.9,104.7,109.4,114.2,118.9,123.7]]},"LKU":{"L":[[30.7,31.9,33.2,34.5,35.75,37,38.3],[32.2,33.4,34.68,35.97,37.22,38.47,39.75],[33.7,34.9,36.17,37.43,38.68,39.93,41.2],[35.2,36.4,37.65,38.9,40.15,41.4,42.65],[36.7,37.9,39.13,40.37,41.62,42.87,44.1],[38.2,39.4,40.62,41.83,43.08,44.33,45.55],[39.7,40.9,42.1,43.3,44.55,45.8,47],[40.18,41.38,42.58,43.77,45.01,46.25,47.45],[40.67,41.87,43.05,44.23,45.47,46.7,47.9],[41.15,42.35,43.52,44.7,45.92,47.15,48.35],[41.63,42.83,44.0,45.17,46.38,47.6,48.8],[42.12,43.32,44.47,45.63,46.84,48.05,49.25],[42.6,43.8,44.95,46.1,47.3,48.5,49.7],[42.78,43.98,45.13,46.28,47.48,48.68,49.88],[42.97,44.17,45.32,46.47,47.67,48.87,50.07],[43.15,44.35,45.5,46.65,47.85,49.05,50.25],[43.33,44.53,45.68,46.83,48.03,49.23,50.43],[43.52,44.72,45.87,47.02,48.22,49.42,50.62],[43.7,44.9,46.05,47.2,48.4,49.6,50.8],[43.88,45.08,46.23,47.38,48.58,49.78,50.98],[44.07,45.27,46.42,47.57,48.77,49.97,51.17],[44.25,45.45,46.6,47.75,48.95,50.15,51.35],[44.43,45.63,46.78,47.93,49.13,50.33,51.53],[44.62,45.82,46.97,48.12,49.32,50.52,51.72],[44.8,46,47.15,48.3,49.5,50.7,51.9],[44.86,46.07,47.22,48.37,49.57,50.78,51.98],[44.93,46.13,47.29,48.44,49.65,50.85,52.06],[44.99,46.2,47.36,48.52,49.72,50.93,52.13],[45.06,46.27,47.43,48.59,49.79,51.0,52.21],[45.12,46.33,47.5,48.66,49.87,51.08,52.29],[45.18,46.4,47.57,48.73,49.94,51.15,52.37],[45.25,46.47,47.64,48.81,50.02,51.23,52.44],[45.31,46.53,47.71,48.88,50.09,51.3,52.52],[45.38,46.6,47.77,48.95,50.16,51.38,52.6],[45.44,46.67,47.84,49.02,50.24,51.45,52.68],[45.5,46.73,47.91,49.09,50.31,51.52,52.76],[45.57,46.8,47.98,49.17,50.38,51.6,52.83],[45.63,46.87,48.05,49.24,50.46,51.68,52.91],[45.69,46.93,48.12,49.31,50.53,51.75,52.99],[45.76,47.0,48.19,49.38,50.6,51.83,53.07],[45.82,47.07,48.26,49.46,50.68,51.9,53.14],[45.89,47.13,48.33,49.53,50.75,51.98,53.22],[45.95,47.2,48.4,49.6,50.82,52.05,53.3],[46.01,47.27,48.47,49.67,50.9,52.12,53.38],[46.08,47.33,48.54,49.74,50.97,52.2,53.46],[46.14,47.4,48.61,49.82,51.05,52.27,53.53],[46.21,47.47,48.68,49.89,51.12,52.35,53.61],[46.27,47.53,48.75,49.96,51.19,52.42,53.69],[46.33,47.6,48.82,50.03,51.27,52.5,53.77],[46.4,47.67,48.89,50.11,51.34,52.58,53.84],[46.46,47.73,48.96,50.18,51.41,52.65,53.92],[46.52,47.8,49.02,50.25,51.49,52.73,54.0],[46.59,47.87,49.09,50.32,51.56,52.8,54.08],[46.65,47.93,49.16,50.39,51.63,52.88,54.16],[46.72,48.0,49.23,50.47,51.71,52.95,54.23],[46.78,48.07,49.3,50.54,51.78,53.02,54.31],[46.84,48.13,49.37,50.61,51.86,53.1,54.39],[46.91,48.2,49.44,50.68,51.93,53.17,54.47],[46.97,48.27,49.51,50.76,52.0,53.25,54.54],[47.04,48.33,49.58,50.83,52.08,53.32,54.62],[47.1,48.4,49.65,50.9,52.15,53.4,54.7]],"P":[[30.2,31.5,32.7,33.9,35.1,36.3,37.5],[31.6,32.88,34.08,35.28,36.48,37.68,38.88],[33.0,34.27,35.47,36.67,37.87,39.07,40.27],[34.4,35.65,36.85,38.05,39.25,40.45,41.65],[35.8,37.03,38.23,39.43,40.63,41.83,43.03],[37.2,38.42,39.62,40.82,42.02,43.22,44.42],[38.6,39.8,41.0,42.2,43.4,44.6,45.8],[39.08,40.28,41.48,42.67,43.86,45.05,46.25],[39.57,40.77,41.95,43.13,44.32,45.5,46.7],[40.05,41.25,42.42,43.6,44.78,45.95,47.15],[40.53,41.73,42.9,44.07,45.23,46.4,47.6],[41.02,42.22,43.38,44.53,45.69,46.85,48.05],[41.5,42.7,43.85,45,46.15,47.3,48.5],[41.69,42.89,44.04,45.18,46.33,47.48,48.68],[41.88,43.08,44.23,45.37,46.52,47.67,48.87],[42.08,43.28,44.41,45.55,46.7,47.85,49.05],[42.27,43.47,44.6,45.73,46.88,48.03,49.23],[42.46,43.66,44.79,45.92,47.07,48.22,49.42],[42.65,43.85,44.98,46.1,47.25,48.4,49.6],[42.84,44.04,45.16,46.28,47.43,48.58,49.78],[43.03,44.23,45.35,46.47,47.62,48.77,49.97],[43.22,44.42,45.54,46.65,47.8,48.95,50.15],[43.42,44.62,45.73,46.83,47.98,49.13,50.33],[43.61,44.81,45.91,47.02,48.17,49.32,50.52],[43.8,45,46.1,47.2,48.35,49.5,50.7],[43.87,45.07,46.17,47.28,48.43,49.58,50.78],[43.93,45.14,46.24,47.35,48.51,49.66,50.87],[44.0,45.21,46.32,47.43,48.58,49.74,50.95],[44.07,45.28,46.39,47.5,48.66,49.82,51.03],[44.13,45.35,46.46,47.58,48.74,49.9,51.12],[44.2,45.42,46.53,47.65,48.82,49.98,51.2],[44.27,45.49,46.61,47.73,48.89,50.06,51.28],[44.33,45.56,46.68,47.8,48.97,50.14,51.37],[44.4,45.62,46.75,47.88,49.05,50.23,51.45],[44.47,45.69,46.82,47.95,49.13,50.31,51.53],[44.53,45.76,46.89,48.02,49.21,50.39,51.62],[44.6,45.83,46.97,48.1,49.28,50.47,51.7],[44.67,45.9,47.04,48.18,49.36,50.55,51.78],[44.73,45.97,47.11,48.25,49.44,50.63,51.87],[44.8,46.04,47.18,48.33,49.52,50.71,51.95],[44.87,46.11,47.26,48.4,49.59,50.79,52.03],[44.93,46.18,47.33,48.48,49.67,50.87,52.12],[45.0,46.25,47.4,48.55,49.75,50.95,52.2],[45.07,46.32,47.47,48.62,49.83,51.03,52.28],[45.13,46.39,47.54,48.7,49.91,51.11,52.37],[45.2,46.46,47.62,48.77,49.98,51.19,52.45],[45.27,46.53,47.69,48.85,50.06,51.27,52.53],[45.33,46.6,47.76,48.92,50.14,51.35,52.62],[45.4,46.67,47.83,49.0,50.22,51.43,52.7],[45.47,46.74,47.91,49.08,50.29,51.51,52.78],[45.53,46.81,47.98,49.15,50.37,51.59,52.87],[45.6,46.88,48.05,49.23,50.45,51.67,52.95],[45.67,46.94,48.12,49.3,50.53,51.76,53.03],[45.73,47.01,48.19,49.38,50.61,51.84,53.12],[45.8,47.08,48.27,49.45,50.68,51.92,53.2],[45.87,47.15,48.34,49.52,50.76,52.0,53.28],[45.93,47.22,48.41,49.6,50.84,52.08,53.37],[46.0,47.29,48.48,49.67,50.92,52.16,53.45],[46.07,47.36,48.56,49.75,50.99,52.24,53.53],[46.13,47.43,48.63,49.82,51.07,52.32,53.62],[46.2,47.5,48.7,49.9,51.15,52.4,53.7]]}},"WFL":{"L":{"L":-0.3521,"start":45,"end":110,"M":[2.441,2.6077,2.7755,2.948,3.1308,3.3278,3.5376,3.762,4.006,4.2693,4.5467,4.8338,5.1259,5.418,5.7074,5.9907,6.2632,6.5251,6.7786,7.0255,7.2666,7.5034,7.737,7.9674,8.1955,8.4227,8.648,8.8697,9.0865,9.2974,9.5032,9.7033,9.8963,10.0827,10.2649,10.4475,10.6352,10.8321,11.0415,11.2651,11.5007,11.7444,11.9916,12.2382,12.4815,12.7209,12.9569,13.191,13.4239,13.6572,13.8928,14.1325,14.3782,14.6316,14.8934,15.1637,15.4419,15.7276,16.0206,16.3204,16.6268,16.9401,17.2607,17.5885,17.9242,18.2689],"S":[0.09182,0.09124,0.09065,0.09007,0.08948,0.0889,0.08831,0.08771,0.08711,0.08651,0.08592,0.08535,0.08481,0.0843,0.08383,0.08342,0.08308,0.08279,0.08255,0.08236,0.08223,0.08215,0.08212,0.08214,0.08219,0.08229,0.08241,0.08254,0.08269,0.08283,0.08295,0.08307,0.08314,0.08318,0.08316,0.08308,0.08293,0.08273,0.08246,0.08215,0.08181,0.08145,0.08111,0.08082,0.08058,0.08041,0.0803,0.08025,0.08026,0.08034,0.08047,0.08067,0.08092,0.08122,0.08157,0.08198,0.08243,0.08292,0.08343,0.08397,0.08453,0.0851,0.08568,0.08629,0.08691,0.08755]},"P":{"L":-0.3833,"start":45,"end":110,"M":[2.4607,2.6306,2.8007,2.9741,3.156,3.3518,3.5636,3.7911,4.0332,4.2875,4.5498,4.8162,5.0837,5.3507,5.6151,5.8742,6.127,6.3738,6.6144,6.8501,7.0812,7.3076,7.5288,7.7448,7.9559,8.163,8.3666,8.5679,8.7661,8.9601,9.149,9.3337,9.5166,9.7015,9.8915,10.0891,10.2965,10.514,10.741,10.9767,11.2198,11.4684,11.7201,11.972,12.2229,12.4723,12.7205,12.9681,13.2158,13.4643,13.7146,13.9676,14.2239,14.4848,14.7519,15.0267,15.3108,15.6046,15.9087,16.2229,16.547,16.8814,17.2269,17.5839,17.9526,18.3324],"S":[0.09029,0.09037,0.09044,0.09052,0.0906,0.09068,0.09076,0.09085,0.09093,0.09102,0.0911,0.09118,0.09125,0.0913,0.09134,0.09136,0.09137,0.09135,0.09131,0.09126,0.09119,0.0911,0.09101,0.0909,0.09079,0.09068,0.09056,0.09043,0.09031,0.09018,0.09005,0.08992,0.08979,0.08965,0.08952,0.0894,0.08928,0.08918,0.0891,0.08903,0.08898,0.08895,0.08895,0.08896,0.089,0.08906,0.08913,0.08923,0.08934,0.08948,0.08963,0.08981,0.09,0.09021,0.09044,0.09069,0.09096,0.09125,0.09155,0.09186,0.09219,0.09254,0.09289,0.09326,0.09363,0.09401]}},"WFH":{"L":{"L":-0.3521,"start":65,"end":120,"M":[7.4327,7.6673,7.8986,8.1272,8.3547,8.5808,8.8036,9.0221,9.2347,9.442,9.644,9.8392,10.0274,10.2105,10.3923,10.5781,10.7718,10.9772,11.1966,11.429,11.6707,11.9173,12.1645,12.4089,12.6495,12.8864,13.1209,13.3541,13.587,13.8217,14.06,14.3037,14.5547,14.814,15.0818,15.3576,15.6412,15.932,16.2298,16.5342,16.8454,17.1637,17.4894,17.8226,18.1645,18.5158,18.8759,19.2439,19.6185,19.999,20.3846,20.7741,21.1666,21.5611,21.9568,22.353],"S":[0.08217,0.08212,0.08213,0.08217,0.08226,0.08237,0.0825,0.08264,0.08278,0.08292,0.08303,0.08312,0.08317,0.08317,0.08311,0.08298,0.08279,0.08255,0.08225,0.08191,0.08156,0.08121,0.0809,0.08064,0.08045,0.08032,0.08025,0.08025,0.08031,0.08043,0.0806,0.08083,0.08112,0.08146,0.08185,0.08229,0.08277,0.08328,0.08381,0.08436,0.08493,0.08551,0.08611,0.08673,0.08736,0.088,0.08864,0.08928,0.08991,0.09054,0.09116,0.09177,0.09239,0.093,0.09362,0.09424]},"P":{"L":-0.3833,"start":65,"end":120,"M":[7.2402,7.463,7.6806,7.893,8.1012,8.3058,8.5078,8.707,8.9025,9.0928,9.2786,9.4617,9.6456,9.8338,10.0289,10.2332,10.4477,10.6719,10.9051,11.1462,11.3934,11.6444,11.8965,12.1478,12.3976,12.6461,12.8939,13.1415,13.3896,13.6393,13.8914,14.1466,14.4059,14.671,14.9434,15.2246,15.5154,15.8164,16.1276,16.4488,16.78,17.122,17.4755,17.8407,18.2174,18.6043,19.0009,19.406,19.819,20.2385,20.6629,21.0909,21.5213,21.9529,22.3851,22.8173],"S":[0.09113,0.09104,0.09094,0.09083,0.09071,0.09059,0.09047,0.09035,0.09022,0.09009,0.08996,0.08983,0.08969,0.08956,0.08943,0.08932,0.08921,0.08912,0.08905,0.08899,0.08896,0.08895,0.08896,0.08899,0.08904,0.08911,0.0892,0.08931,0.08944,0.08959,0.08975,0.08994,0.09015,0.09037,0.09062,0.09088,0.09116,0.09146,0.09177,0.09209,0.09243,0.09278,0.09315,0.09352,0.0939,0.09428,0.09467,0.09507,0.09546,0.09586,0.09626,0.09666,0.09707,0.09747,0.09788,0.09828]}},"approx":{"BBU":["P"],"LKU":["L","P"]}};
+
+        /* ============ UTILITAS ============ */
+        const $ = (id) => document.getElementById(id);
+        const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const num = (v) => { const n = parseFloat(String(v ?? '').replace(',', '.')); return Number.isFinite(n) ? n : null; };
+
+        // localStorage yang aman (tidak membuat seluruh script mati bila storage diblokir)
+        const _mem = {};
+        const store = {
+            get(k) { try { return localStorage.getItem(k); } catch (e) { return Object.prototype.hasOwnProperty.call(_mem, k) ? _mem[k] : null; } },
+            set(k, v) { try { localStorage.setItem(k, v); } catch (e) { _mem[k] = String(v); } },
+            remove(k) { try { localStorage.removeItem(k); } catch (e) { delete _mem[k]; } }
+        };
+        function safeParse(str, fallback) { try { const v = JSON.parse(str); return v ?? fallback; } catch (e) { return fallback; } }
+
+        // Banner error agar kegagalan tidak diam-diam
+        function showAppError(msg) {
+            let bar = $('appErrorBar');
+            if (!bar) {
+                bar = document.createElement('div');
+                bar.id = 'appErrorBar';
+                bar.className = 'fixed bottom-3 left-3 right-3 md:left-auto md:w-[420px] z-[60] bg-red-600 text-white text-xs p-3 rounded-xl shadow-lg no-print';
+                document.body.appendChild(bar);
+            }
+            bar.textContent = 'Terjadi kesalahan: ' + msg;
+            clearTimeout(bar._t);
+            bar._t = setTimeout(() => bar.remove(), 8000);
+        }
+        window.addEventListener('error', (e) => showAppError(e.message || 'tidak diketahui'));
+        window.addEventListener('unhandledrejection', (e) => showAppError((e.reason && e.reason.message) || String(e.reason)));
+
+        /* ============ NORMALISASI DATA (lokal maupun dari cloud) ============ */
+        function toYmd(v) {
+            if (v === null || v === undefined || v === '') return '';
+            if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+            const d = v instanceof Date ? v : new Date(v);
+            if (isNaN(d.getTime())) return '';
+            const p = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+        }
+        const todayYmd = () => toYmd(new Date());
+
+        function normalizeKunjungan(k, balitaId) {
+            k = k || {};
+            return {
+                ...k,
+                id: String(k.id ?? ('k-' + Math.random().toString(36).slice(2, 10))),
+                balita_id: String(k.balita_id ?? balitaId ?? ''),
+                tglKunjungan: toYmd(k.tglKunjungan),
+                umur: parseInt(k.umur) || 0,
+                bb: num(k.bb),
+                tb: num(k.tb),
+                lk: num(k.lk),
+                lila: num(k.lila),
+                vitA: k.vitA === true || k.vitA === 'true' || k.vitA === 'TRUE',
+                obatCacing: k.obatCacing === true || k.obatCacing === 'true' || k.obatCacing === 'TRUE',
+                tbcBatuk: k.tbcBatuk === true || k.tbcBatuk === 'true' || k.tbcBatuk === 'TRUE',
+                tbcDemam: k.tbcDemam === true || k.tbcDemam === 'true' || k.tbcDemam === 'TRUE',
+                tbcKontak: k.tbcKontak === true || k.tbcKontak === 'true' || k.tbcKontak === 'TRUE',
+                imunisasi: String(k.imunisasi ?? '')
+            };
+        }
+
+        function normalizeBalita(b) {
+            b = b || {};
+            const id = String(b.id ?? ('b-' + Math.random().toString(36).slice(2, 10)));
+            // NIK dari Google Sheets sering berubah menjadi angka -> paksa menjadi teks
+            let nik = b.nik === null || b.nik === undefined ? '' : String(b.nik).trim();
+            if (/^\d+\.0+$/.test(nik)) nik = nik.replace(/\.0+$/, '');
+            const jk = String(b.jk ?? '').trim().toUpperCase().startsWith('P') ? 'P' : 'L';
+            return {
+                ...b,
+                id,
+                nik,
+                nama: String(b.nama ?? '').trim(),
+                tglLahir: toYmd(b.tglLahir),
+                jk,
+                desa: String(b.desa ?? '').trim().toUpperCase(),
+                posyandu: String(b.posyandu ?? '').trim().toUpperCase(),
+                namaOrtu: String(b.namaOrtu ?? '').trim(),
+                noHp: String(b.noHp ?? ''),
+                alamat: String(b.alamat ?? ''),
+                kunjungan: (Array.isArray(b.kunjungan) ? b.kunjungan : []).map(k => normalizeKunjungan(k, id))
+            };
+        }
+
+        function persistLocal() { store.set('posyandu_ilp_db', JSON.stringify(balitaData)); }
+
+        /* ============ STATE ============ */
+        let currentUser = safeParse(store.get('posyandu_active_user'), null);
+        const DEFAULT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw1nnEOKs7cidH6XiWntVStyGzsHza8Z6QOypqNQxSZvHmqvdeyRQR1t_8fyKULcVlB/exec";
+        let WEB_APP_URL = store.get('posyandu_web_app_url') || DEFAULT_WEB_APP_URL;
+        let balitaData = (() => { const raw = safeParse(store.get('posyandu_ilp_db'), []); return (Array.isArray(raw) ? raw : []).map(normalizeBalita); })();
+        let selectedBalitaId = null;
+        let activeChartType = 'BBU';
+        let growthChartInstance = null;
+
+        window.onload = function () {
+            if (currentUser) {
+                $('loginScreen').classList.add('hidden');
+                initSession();
+            } else {
+                $('loginScreen').classList.remove('hidden');
+            }
+        };
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const u = $('loginUsername').value.trim().toUpperCase();
+            const p = $('loginPassword').value.trim();
+            const alertBox = $('loginAlert');
+
+            if (u === "ADMIN" && p === "admin123") {
+                currentUser = { role: "super_admin", name: "Super Admin Puskesmas", desa: null };
+            } else if (DESA_POSYANDU_MAP[u] && p === "123456") {
+                currentUser = { role: "kader_desa", name: `Kader Desa ${u}`, desa: u };
+            } else {
+                alertBox.innerText = "Username/Desa atau Password salah! (Password standar desa: 123456)";
+                alertBox.classList.remove('hidden');
+                return;
+            }
+
+            store.set('posyandu_active_user', JSON.stringify(currentUser));
+            $('loginScreen').classList.add('hidden');
+            initSession();
+        }
+
+        function logout() {
+            if (confirm("Keluar dari aplikasi?")) {
+                store.remove('posyandu_active_user');
+                location.reload();
+            }
+        }
+
+        function initSession() {
+            $('currentUserText').innerText = `${currentUser.name}`;
+            const adminFilters = $('superAdminFilters');
+            if (currentUser.role === 'super_admin') {
+                adminFilters.classList.remove('hidden');
+                populateSuperAdminDropdowns();
+            } else {
+                adminFilters.classList.add('hidden');
+                $('inputDesa').value = currentUser.desa;
+                $('inputDesa').setAttribute('disabled', 'true');
+                populatePosyanduDropdown(currentUser.desa);
+            }
+            renderBalitaList();               // tampilkan data lokal dulu
+            if (WEB_APP_URL) fetchCloudData(); // lalu gabungkan dengan cloud (tanpa menghapus data lokal)
+        }
+
+        function populateSuperAdminDropdowns() {
+            const selectDesa = $('filterDesa');
+            selectDesa.innerHTML = '<option value="">-- Semua Desa --</option>';
+            Object.keys(DESA_POSYANDU_MAP).forEach(d => {
+                selectDesa.innerHTML += `<option value="${esc(d)}">${esc(d)}</option>`;
+            });
+            onAdminDesaFilterChange();
+        }
+
+        function onAdminDesaFilterChange() {
+            const fDesa = $('filterDesa').value;
+            const selectPosyandu = $('filterPosyandu');
+            selectPosyandu.innerHTML = '<option value="">-- Semua Posyandu --</option>';
+            if (fDesa && DESA_POSYANDU_MAP[fDesa]) {
+                DESA_POSYANDU_MAP[fDesa].forEach(p => {
+                    selectPosyandu.innerHTML += `<option value="${esc(p)}">${esc(p)}</option>`;
+                });
+            }
+            filterBalita();
+        }
+
+        function onModalDesaChange() { populatePosyanduDropdown($('inputDesa').value); }
+
+        function populatePosyanduDropdown(desaName) {
+            const pSelect = $('inputPosyandu');
+            pSelect.innerHTML = '';
+            if (DESA_POSYANDU_MAP[desaName]) {
+                DESA_POSYANDU_MAP[desaName].forEach(p => {
+                    pSelect.innerHTML += `<option value="${esc(p)}">${esc(p)}</option>`;
+                });
+            }
+        }
+
+        /* ============ UMUR & Z-SCORE (WHO 2006 / Permenkes No. 2 Tahun 2020) ============ */
+        // Umur dalam bulan PENUH (memperhitungkan tanggal, bukan hanya selisih bulan kalender)
+        function calculateAgeInMonths(birthDateStr, visitDateStr) {
+            const b = toYmd(birthDateStr);
+            if (!b) return 0;
+            const v = toYmd(visitDateStr) || todayYmd();
+            const [by, bm, bd] = b.split('-').map(Number);
+            const [vy, vm, vd] = v.split('-').map(Number);
+            let months = (vy - by) * 12 + (vm - bm);
+            if (vd < bd) months--;
+            return Math.max(0, months);
+        }
+
+        const NO_DATA = { zScore: null, status: 'Belum diisi', color: 'bg-slate-100 text-slate-700' };
+        const sexKey = (g) => (g === 'P' ? 'P' : 'L');
+
+        // sd = [-3SD, -2SD, -1SD, median, +1SD, +2SD, +3SD]
+        function zFromSD(y, sd) {
+            if (y < sd[0]) return -3 + (y - sd[0]) / (sd[1] - sd[0]);
+            if (y > sd[6]) return 3 + (y - sd[6]) / (sd[6] - sd[5]);
+            for (let i = 0; i < 6; i++) {
+                if (y >= sd[i] && y <= sd[i + 1]) return (i - 3) + (y - sd[i]) / (sd[i + 1] - sd[i]);
+            }
+            return 0;
+        }
+
+        // Batas kewajaran (WHO flag) agar salah ketik tidak dianggap hasil valid
+        const IMPLAUSIBLE = { BBU: [-6, 5], TBU: [-6, 6], BBTB: [-5, 5], LKU: [-5, 5] };
+
+        function classify(indicator, z) {
+            if (z === null || z === undefined || isNaN(z)) return { status: 'Belum diisi', color: 'bg-slate-100 text-slate-700' };
+            const lim = IMPLAUSIBLE[indicator];
+            if (lim && (z < lim[0] || z > lim[1])) return { status: 'Data tidak wajar - cek ulang', color: 'bg-purple-100 text-purple-800 font-semibold' };
+            if (indicator === 'BBU') {
+                if (z < -3) return { status: 'BB Sangat Kurang', color: 'bg-red-600 text-white font-bold' };
+                if (z < -2) return { status: 'BB Kurang', color: 'bg-amber-500 text-white font-bold' };
+                if (z <= 1) return { status: 'BB Normal', color: 'bg-emerald-100 text-emerald-800 font-semibold' };
+                return { status: 'Risiko BB Lebih', color: 'bg-amber-100 text-amber-800' };
+            }
+            if (indicator === 'TBU') {
+                if (z < -3) return { status: 'Sangat Pendek', color: 'bg-red-600 text-white font-bold' };
+                if (z < -2) return { status: 'Pendek (Stunted)', color: 'bg-amber-500 text-white font-bold' };
+                if (z <= 3) return { status: 'TB Normal', color: 'bg-emerald-100 text-emerald-800 font-semibold' };
+                return { status: 'Tinggi', color: 'bg-blue-100 text-blue-800' };
+            }
+            if (indicator === 'BBTB') {
+                if (z < -3) return { status: 'Gizi Buruk', color: 'bg-red-600 text-white font-bold' };
+                if (z < -2) return { status: 'Gizi Kurang', color: 'bg-amber-500 text-white font-bold' };
+                if (z <= 1) return { status: 'Gizi Baik', color: 'bg-emerald-100 text-emerald-800 font-semibold' };
+                if (z <= 2) return { status: 'Berisiko Gizi Lebih', color: 'bg-amber-100 text-amber-800' };
+                if (z <= 3) return { status: 'Gizi Lebih', color: 'bg-orange-500 text-white font-bold' };
+                return { status: 'Obesitas', color: 'bg-red-600 text-white font-bold' };
+            }
+            if (indicator === 'LKU') {
+                if (z < -2) return { status: 'Mikrosefali', color: 'bg-red-500 text-white font-bold' };
+                if (z <= 2) return { status: 'LK Normal', color: 'bg-emerald-100 text-emerald-800' };
+                return { status: 'Makrosefali', color: 'bg-amber-500 text-white font-bold' };
+            }
+            return { status: 'Normal', color: 'bg-emerald-100 text-emerald-800' };
+        }
+
+        // BB/U, TB/U (PB/U), LK/U: tabel WHO per bulan (0-60 bulan)
+        function calculateZScore(value, ageInMonths, gender, indicator) {
+            const y = num(value);
+            if (!y || y <= 0) return { ...NO_DATA };
+            const age = parseInt(ageInMonths);
+            if (isNaN(age) || age < 0) return { ...NO_DATA };
+            if (age > 60) return { zScore: null, status: 'Umur > 60 bln', color: 'bg-slate-100 text-slate-700' };
+            const row = WHO_DATA.AGE[indicator] && WHO_DATA.AGE[indicator][sexKey(gender)] && WHO_DATA.AGE[indicator][sexKey(gender)][age];
+            if (!row) return { ...NO_DATA };
+            const zScore = parseFloat(zFromSD(y, row).toFixed(2));
+            return { zScore, ...classify(indicator, zScore) };
+        }
+
+        // Nilai M dan S (LMS WHO) pada tinggi/panjang tertentu, interpolasi linear
+        function lmsAtHeight(tbl, h) {
+            if (h < tbl.start || h > tbl.end) return null;
+            const i = Math.floor(h - tbl.start);
+            const i2 = Math.min(i + 1, tbl.M.length - 1);
+            const f = h - tbl.start - i;
+            return { L: tbl.L, M: tbl.M[i] + (tbl.M[i2] - tbl.M[i]) * f, S: tbl.S[i] + (tbl.S[i2] - tbl.S[i]) * f };
+        }
+
+        // Tabel BB/TB: panjang badan (0-<24 bln) memakai WFL, tinggi badan (>=24 bln) memakai WFH
+        function wfhTable(ageMonths, gender) {
+            return (ageMonths < 24 ? WHO_DATA.WFL : WHO_DATA.WFH)[sexKey(gender)];
+        }
+
+        function sdFromLMS(p, z) { return p.M * Math.pow(1 + p.L * p.S * z, 1 / p.L); }
+
+        function calculateBbtbZScore(bb, tb, gender, ageMonths) {
+            const w = num(bb), h = num(tb);
+            if (!w || !h || w <= 0 || h <= 0) return { ...NO_DATA };
+            const age = parseInt(ageMonths) || 0;
+            if (age > 60) return { zScore: null, status: 'Umur > 60 bln', color: 'bg-slate-100 text-slate-700' };
+            const tbl = wfhTable(age, gender);
+            const p = lmsAtHeight(tbl, h);
+            if (!p) return { zScore: null, status: `TB di luar rentang WHO (${tbl.start}-${tbl.end} cm)`, color: 'bg-slate-100 text-slate-700' };
+            let z = (Math.pow(w / p.M, p.L) - 1) / (p.L * p.S);
+            // Penyesuaian WHO untuk |z| > 3
+            if (z > 3) { const s3 = sdFromLMS(p, 3), s2 = sdFromLMS(p, 2); z = 3 + (w - s3) / (s3 - s2); }
+            else if (z < -3) { const n3 = sdFromLMS(p, -3), n2 = sdFromLMS(p, -2); z = -3 + (w - n3) / (n2 - n3); }
+            const zScore = parseFloat(z.toFixed(2));
+            return { zScore, ...classify('BBTB', zScore) };
+        }
+
+        /* ============ DAFTAR BALITA ============ */
+        function getVisibleBalita(applySearch) {
+            let data = [...balitaData];
+            if (currentUser && currentUser.role === 'kader_desa') {
+                data = data.filter(b => b.desa === String(currentUser.desa).toUpperCase());
+            } else if (currentUser && currentUser.role === 'super_admin') {
+                const fDesa = $('filterDesa').value;
+                const fPosyandu = $('filterPosyandu').value;
+                if (fDesa) data = data.filter(b => b.desa === fDesa);
+                if (fPosyandu) data = data.filter(b => b.posyandu === fPosyandu);
+            } else {
+                data = [];
+            }
+            if (applySearch) {
+                const q = $('searchInput').value.trim().toLowerCase();
+                if (q) {
+                    data = data.filter(b =>
+                        b.nama.toLowerCase().includes(q) ||
+                        String(b.nik).includes(q) ||
+                        b.namaOrtu.toLowerCase().includes(q));
+                }
+            }
+            return data;
+        }
+
+        function renderBalitaList() {
+            const listContainer = $('balitaList');
+            const data = getVisibleBalita(true);
+
+            $('totalBalitaCount').innerText = data.length;
+
+            if (data.length === 0) {
+                listContainer.innerHTML = `<div class="p-6 text-center text-slate-400 text-xs"><p>Belum ada data balita ditemukan.</p></div>`;
+                return;
+            }
+
+            listContainer.innerHTML = data.map(b => {
+                const isSelected = b.id === selectedBalitaId;
+                return `
+                    <div data-id="${esc(b.id)}" onclick="selectBalita(this.dataset.id)" class="p-3.5 cursor-pointer transition ${isSelected ? 'bg-emerald-50 border-l-4 border-emerald-600' : 'hover:bg-slate-50'}">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-semibold text-slate-800 text-xs">${esc(b.nama)}</h4>
+                                <p class="text-[11px] text-slate-500">Ortu: ${esc(b.namaOrtu)} • NIK: ${esc(b.nik.slice(0, 8))}...</p>
+                                <span class="inline-block mt-1 text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold">${esc(b.desa)} | Posyandu: ${esc(b.posyandu)}</span>
+                            </div>
+                            <span class="text-[10px] px-2 py-0.5 rounded font-semibold ${b.jk === 'L' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}">${esc(b.jk)}</span>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        function filterBalita() { renderBalitaList(); }
+
+        function selectBalita(id) {
+            const b = balitaData.find(item => item.id === id);
+            if (!b) return;
+            selectedBalitaId = id;
+
+            renderBalitaList();
+            $('emptyState').classList.add('hidden');
+            $('balitaDetailCard').classList.remove('hidden');
+
+            $('viewNamaAnak').innerText = b.nama;
+            $('viewNik').innerText = b.nik;
+            $('viewTglLahir').innerText = b.tglLahir || '-';
+            $('viewUmurSekarang').innerText = `${calculateAgeInMonths(b.tglLahir)} Bulan`;
+            $('viewJenisKelamin').innerText = b.jk === 'L' ? 'Laki-laki (L)' : 'Perempuan (P)';
+            $('viewNamaOrtu').innerText = b.namaOrtu;
+            $('viewNoHp').innerText = b.noHp || '-';
+            $('viewPosyanduDesa').innerText = `${b.desa} (${b.posyandu})`;
+            $('viewAlamat').innerText = b.alamat || '-';
+
+            renderKunjunganTable(b);
+        }
+
+        function renderKunjunganTable(balita) {
+            const tbody = $('kunjunganTableBody');
+
+            if (!balita.kunjungan || balita.kunjungan.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center py-6 text-slate-400 italic">Belum ada rekam kunjungan bulanan.</td></tr>`;
+                ['Bbu', 'Tbu', 'Bbtb', 'Lku'].forEach(k => {
+                    $(`summary${k}Badge`).innerText = 'Belum ada data';
+                    $(`summary${k}Badge`).className = 'mt-1 text-xs font-bold py-1 px-2 rounded-md bg-slate-100 text-slate-700 inline-block';
+                    $(`summary${k}Z`).innerText = 'Z-Score: -';
+                });
+                return;
+            }
+
+            const sorted = [...balita.kunjungan].sort((a, b) => new Date(b.tglKunjungan) - new Date(a.tglKunjungan));
+
+            tbody.innerHTML = sorted.map(k => {
+                const bbu = calculateZScore(k.bb, k.umur, balita.jk, 'BBU');
+                const tbu = calculateZScore(k.tb, k.umur, balita.jk, 'TBU');
+                const bbtb = calculateBbtbZScore(k.bb, k.tb, balita.jk, k.umur);
+                const lku = calculateZScore(k.lk, k.umur, balita.jk, 'LKU');
+
+                const ilp = [];
+                if (k.vitA) ilp.push('<span class="bg-blue-50 text-blue-700 px-1 rounded">VitA</span>');
+                if (k.obatCacing) ilp.push('<span class="bg-purple-50 text-purple-700 px-1 rounded">Cacing</span>');
+                if (k.imunisasi) ilp.push(`<span class="bg-teal-50 text-teal-700 px-1 rounded">${esc(k.imunisasi)}</span>`);
+
+                return `
+                    <tr class="hover:bg-slate-50 border-b">
+                        <td class="p-2.5 font-medium">${esc(k.tglKunjungan)}</td>
+                        <td class="p-2.5">${esc(k.umur)} bln</td>
+                        <td class="p-2.5 font-medium">BB: ${esc(k.bb ?? '-')}kg<br>TB: ${esc(k.tb ?? '-')}cm</td>
+                        <td class="p-2.5"><span class="px-2 py-0.5 rounded ${bbu.color}">${esc(bbu.status)}</span></td>
+                        <td class="p-2.5"><span class="px-2 py-0.5 rounded ${tbu.color}">${esc(tbu.status)}</span></td>
+                        <td class="p-2.5"><span class="px-2 py-0.5 rounded ${bbtb.color}">${esc(bbtb.status)}</span></td>
+                        <td class="p-2.5"><span class="px-2 py-0.5 rounded ${lku.color}">${esc(lku.status)}</span></td>
+                        <td class="p-2.5">${ilp.join(' ')}</td>
+                        <td class="p-2.5 text-center">
+                            <button data-id="${esc(k.id)}" onclick="openEditKunjunganModal(this.dataset.id)" class="text-amber-500 px-1"><i class="fa-solid fa-pen"></i></button>
+                            <button data-id="${esc(k.id)}" onclick="deleteKunjungan(this.dataset.id)" class="text-red-500 px-1"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>`;
+            }).join('');
+
+            const latest = sorted[0];
+            updateSummaryBadge('Bbu', calculateZScore(latest.bb, latest.umur, balita.jk, 'BBU'));
+            updateSummaryBadge('Tbu', calculateZScore(latest.tb, latest.umur, balita.jk, 'TBU'));
+            updateSummaryBadge('Bbtb', calculateBbtbZScore(latest.bb, latest.tb, balita.jk, latest.umur));
+            updateSummaryBadge('Lku', calculateZScore(latest.lk, latest.umur, balita.jk, 'LKU'));
+        }
+
+        function updateSummaryBadge(key, res) {
+            const b = $(`summary${key}Badge`);
+            const z = $(`summary${key}Z`);
+            b.innerText = res.status;
+            b.className = `mt-1 text-xs font-bold py-1 px-2 rounded-md ${res.color} inline-block`;
+            z.innerText = `Z-Score: ${res.zScore ?? '-'}`;
+        }
+
+        /* ============ MODAL & FORM ============ */
+        function showModal(id) { $(id).classList.remove('hidden'); $(id).classList.add('flex'); }
+
+        function openAddBalitaModal() {
+            $('formBalita').reset();
+            $('editBalitaId').value = '';
+            if (currentUser.role === 'kader_desa') {
+                $('inputDesa').value = currentUser.desa;
+                $('inputDesa').setAttribute('disabled', 'true');
+                populatePosyanduDropdown(currentUser.desa);
+            } else {
+                $('inputDesa').removeAttribute('disabled');
+                populatePosyanduDropdown($('inputDesa').value);
+            }
+            showModal('modalBalita');
+        }
+
+        function openEditBalitaModal() {
+            const b = balitaData.find(item => item.id === selectedBalitaId);
+            if (!b) return;
+
+            $('editBalitaId').value = b.id;
+            $('inputNik').value = b.nik;
+            $('inputNama').value = b.nama;
+            $('inputTglLahir').value = b.tglLahir;
+            $('inputJk').value = b.jk;
+            $('inputDesa').value = b.desa;
+            populatePosyanduDropdown(b.desa);
+            $('inputPosyandu').value = b.posyandu;
+            $('inputNamaOrtu').value = b.namaOrtu;
+            $('inputNoHp').value = b.noHp || '';
+            $('inputAlamat').value = b.alamat || '';
+            showModal('modalBalita');
+        }
+
+        function openAddKunjunganModal() {
+            if (!selectedBalitaId) return;
+            $('formKunjungan').reset();
+            $('editKunjunganId').value = '';
+            $('inputTglKunjungan').value = todayYmd();
+            onAnthropometryChange();
+            showModal('modalKunjungan');
+        }
+
+        function openEditKunjunganModal(kunjunganId) {
+            const balita = balitaData.find(b => b.id === selectedBalitaId);
+            if (!balita) return;
+            const visit = balita.kunjungan.find(k => k.id === kunjunganId);
+            if (!visit) return;
+
+            $('editKunjunganId').value = visit.id;
+            $('inputTglKunjungan').value = visit.tglKunjungan;
+            $('inputUmurKunjungan').value = visit.umur;
+            $('inputBb').value = visit.bb ?? '';
+            $('inputTb').value = visit.tb ?? '';
+            $('inputLk').value = visit.lk ?? '';
+            $('inputLila').value = visit.lila ?? '';
+            $('inputStatusPertumbuhan').value = visit.statusPertumbuhan || 'N';
+            $('inputKbm').value = visit.kbm || 'Tidak';
+            $('checkVitA').checked = !!visit.vitA;
+            $('checkObatCacing').checked = !!visit.obatCacing;
+            $('inputImunisasi').value = visit.imunisasi || '';
+            $('tbcBatuk').checked = !!visit.tbcBatuk;
+            $('tbcDemam').checked = !!visit.tbcDemam;
+            $('tbcKontak').checked = !!visit.tbcKontak;
+            $('inputSdidtk').value = visit.sdidtk || 'Sesuai';
+            $('inputEdukasi').value = visit.edukasi || '';
+
+            onAnthropometryChange();
+            showModal('modalKunjungan');
+        }
+
+        function onAnthropometryChange() {
+            const selected = balitaData.find(b => b.id === selectedBalitaId);
+            const visitDate = $('inputTglKunjungan').value;
+            if (!selected || !visitDate) return;
+
+            const age = calculateAgeInMonths(selected.tglLahir, visitDate);
+            $('inputUmurKunjungan').value = age;
+
+            const bb = num($('inputBb').value);
+            const tb = num($('inputTb').value);
+            const lk = num($('inputLk').value);
+
+            const bbu = calculateZScore(bb, age, selected.jk, 'BBU');
+            const tbu = calculateZScore(tb, age, selected.jk, 'TBU');
+            const bbtb = calculateBbtbZScore(bb, tb, selected.jk, age);
+            const lku = calculateZScore(lk, age, selected.jk, 'LKU');
+
+            const show = (id, r) => { $(id).innerHTML = `${esc(r.status)} <span class="text-slate-400">(${esc(r.zScore ?? '-')})</span>`; };
+            show('previewBbu', bbu); show('previewTbu', tbu); show('previewBbtb', bbtb); show('previewLku', lku);
+        }
+
+        function saveBalita(e) {
+            e.preventDefault();
+            const editId = $('editBalitaId').value;
+            const desaVal = currentUser.role === 'kader_desa' ? currentUser.desa : $('inputDesa').value;
+            const nik = $('inputNik').value.trim();
+            const tglLahir = $('inputTglLahir').value;
+
+            if (!/^\d{16}$/.test(nik)) return alert("NIK harus tepat 16 digit angka.");
+            if (balitaData.some(b => b.nik === nik && b.id !== editId)) return alert("NIK ini sudah terdaftar pada balita lain.");
+            if (tglLahir > todayYmd()) return alert("Tanggal lahir tidak boleh di masa depan.");
+            if (calculateAgeInMonths(tglLahir) > 60 && !confirm("Umur anak lebih dari 60 bulan (di luar rentang balita). Tetap simpan?")) return;
+
+            const newBalita = normalizeBalita({
+                id: editId || 'b-' + Date.now(),
+                nik,
+                nama: $('inputNama').value,
+                tglLahir,
+                jk: $('inputJk').value,
+                desa: desaVal,
+                posyandu: $('inputPosyandu').value,
+                namaOrtu: $('inputNamaOrtu').value,
+                noHp: $('inputNoHp').value,
+                alamat: $('inputAlamat').value,
+                kunjungan: []
+            });
+
+            if (editId) {
+                const idx = balitaData.findIndex(item => item.id === editId);
+                if (idx !== -1) {
+                    newBalita.kunjungan = balitaData[idx].kunjungan;
+                    balitaData[idx] = newBalita;
+                } else {
+                    balitaData.push(newBalita);
+                }
+            } else {
+                balitaData.push(newBalita);
+            }
+
+            persistLocal();
+            postToCloud('saveBalita', { ...newBalita, kunjungan: undefined });
+            closeModal('modalBalita');
+            renderBalitaList();
+            selectBalita(newBalita.id);
+        }
+
+        function saveKunjungan(e) {
+            e.preventDefault();
+            const balita = balitaData.find(b => b.id === selectedBalitaId);
+            if (!balita) return;
+
+            onAnthropometryChange();
+            const tgl = $('inputTglKunjungan').value;
+            const bb = num($('inputBb').value), tb = num($('inputTb').value), lk = num($('inputLk').value);
+
+            if (tgl < balita.tglLahir) return alert("Tanggal kunjungan tidak boleh sebelum tanggal lahir.");
+            if (!bb || bb <= 0 || !tb || tb <= 0) return alert("Berat badan dan tinggi/panjang badan wajib diisi dengan angka yang benar.");
+            const odd = [];
+            if (bb < 1.5 || bb > 30) odd.push(`BB ${bb} kg`);
+            if (tb < 35 || tb > 130) odd.push(`TB ${tb} cm`);
+            if (lk && (lk < 25 || lk > 60)) odd.push(`LK ${lk} cm`);
+            if (odd.length && !confirm(`Nilai tampak tidak wajar (${odd.join(', ')}). Pastikan satuan benar. Tetap simpan?`)) return;
+
+            const editId = $('editKunjunganId').value;
+            const visitRecord = normalizeKunjungan({
+                id: editId || 'k-' + Date.now(),
+                balita_id: balita.id,
+                tglKunjungan: tgl,
+                umur: calculateAgeInMonths(balita.tglLahir, tgl),
+                bb, tb, lk,
+                lila: num($('inputLila').value),
+                statusPertumbuhan: $('inputStatusPertumbuhan').value,
+                kbm: $('inputKbm').value,
+                vitA: $('checkVitA').checked,
+                obatCacing: $('checkObatCacing').checked,
+                imunisasi: $('inputImunisasi').value,
+                tbcBatuk: $('tbcBatuk').checked,
+                tbcDemam: $('tbcDemam').checked,
+                tbcKontak: $('tbcKontak').checked,
+                sdidtk: $('inputSdidtk').value,
+                edukasi: $('inputEdukasi').value
+            }, balita.id);
+
+            if (!balita.kunjungan) balita.kunjungan = [];
+            if (editId) {
+                const idx = balita.kunjungan.findIndex(k => k.id === editId);
+                if (idx !== -1) balita.kunjungan[idx] = visitRecord; else balita.kunjungan.push(visitRecord);
+            } else {
+                balita.kunjungan.push(visitRecord);
+            }
+
+            persistLocal();
+            postToCloud('saveKunjungan', visitRecord);
+            closeModal('modalKunjungan');
+            selectBalita(selectedBalitaId);
+        }
+
+        function deleteCurrentBalita() {
+            if (!selectedBalitaId) return;
+            if (confirm("Hapus data balita ini beserta seluruh kunjungannya?")) {
+                const idToDelete = selectedBalitaId;
+                const victim = balitaData.find(b => b.id === idToDelete);
+                const kunjunganIds = victim ? victim.kunjungan.map(k => k.id) : [];
+                balitaData = balitaData.filter(b => b.id !== idToDelete);
+                persistLocal();
+                postToCloud('deleteBalita', { id: idToDelete, kunjunganIds });
+                selectedBalitaId = null;
+                $('balitaDetailCard').classList.add('hidden');
+                $('emptyState').classList.remove('hidden');
+                renderBalitaList();
+            }
+        }
+
+        function deleteKunjungan(kunjunganId) {
+            const balita = balitaData.find(b => b.id === selectedBalitaId);
+            if (!balita) return;
+            if (confirm("Hapus rekam kunjungan ini?")) {
+                balita.kunjungan = balita.kunjungan.filter(k => k.id !== kunjunganId);
+                persistLocal();
+                postToCloud('deleteKunjungan', { id: kunjunganId, balita_id: balita.id });
+                selectBalita(selectedBalitaId);
+            }
+        }
+
+        /* ============ GRAFIK KMS (sumbu X numerik, kunjungan di umur/tinggi sebenarnya) ============ */
+        function openChartModal() {
+            if (!selectedBalitaId) return;
+            showModal('modalChart');
+            switchChartType(activeChartType);
+        }
+
+        function switchChartType(type) {
+            activeChartType = type;
+            ['BBU', 'TBU', 'BBTB', 'LKU'].forEach(t => {
+                const btn = $(`btnChart${t}`);
+                if (btn) {
+                    btn.className = t === type
+                        ? "px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white transition"
+                        : "px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition";
+                }
+            });
+            renderGrowthChart(type);
+        }
+
+        const CHART_META = {
+            BBU: { label: 'BB/U (Berat Badan menurut Umur)', field: 'bb', xTitle: 'Umur (bulan)', yTitle: 'Berat badan (kg)' },
+            TBU: { label: 'TB/U (Tinggi/Panjang Badan menurut Umur)', field: 'tb', xTitle: 'Umur (bulan)', yTitle: 'Tinggi/Panjang badan (cm)' },
+            LKU: { label: 'LK/U (Lingkar Kepala menurut Umur)', field: 'lk', xTitle: 'Umur (bulan)', yTitle: 'Lingkar kepala (cm)' },
+            BBTB: { label: 'BB/TB (Berat Badan menurut Tinggi/Panjang)', field: 'bb', xTitle: 'Tinggi/Panjang badan (cm)', yTitle: 'Berat badan (kg)' }
+        };
+
+        function renderGrowthChart(indicator) {
+            const balita = balitaData.find(b => b.id === selectedBalitaId);
+            if (!balita) return;
+            const meta = CHART_META[indicator] || CHART_META.BBU;
+            const sx = sexKey(balita.jk);
+            const canvas = $('kmsGrowthChart');
+            const sub = $('chartSubTitle');
+
+            if (growthChartInstance) { growthChartInstance.destroy(); growthChartInstance = null; }
+
+            if (typeof Chart === 'undefined') {
+                sub.textContent = 'Pustaka grafik (Chart.js) gagal dimuat. Periksa koneksi internet lalu muat ulang halaman.';
+                return;
+            }
+
+            const visits = [...(balita.kunjungan || [])].sort((a, b) => a.umur - b.umur || String(a.tglKunjungan).localeCompare(String(b.tglKunjungan)));
+            const nowAge = calculateAgeInMonths(balita.tglLahir);
+            const maxAge = visits.length ? Math.max(...visits.map(v => v.umur)) : nowAge;
+
+            let refs, childPts, xMin, xMax, note = '';
+            if (indicator === 'BBTB') {
+                const tbl = wfhTable(maxAge, balita.jk);
+                refs = [];
+                for (let i = 0; i < tbl.M.length; i++) {
+                    const p = { L: tbl.L, M: tbl.M[i], S: tbl.S[i] };
+                    refs.push({ x: tbl.start + i, sd: [-3, -2, -1, 0, 1, 2, 3].map(z => sdFromLMS(p, z)) });
+                }
+                childPts = visits.filter(v => v.bb > 0 && v.tb > 0).map(v => ({ x: v.tb, y: v.bb, umur: v.umur, tgl: v.tglKunjungan }));
+                xMin = tbl.start; xMax = tbl.end;
+                if (childPts.length) {
+                    xMin = Math.max(tbl.start, Math.floor(Math.min(...childPts.map(p => p.x))) - 8);
+                    xMax = Math.min(tbl.end, Math.ceil(Math.max(...childPts.map(p => p.x))) + 8);
+                }
+                note = maxAge < 24 ? 'Acuan: WHO BB/PB (0-23 bln)' : 'Acuan: WHO BB/TB (24-60 bln)';
+            } else {
+                const table = WHO_DATA.AGE[indicator][sx];
+                refs = table.map((sd, m) => ({ x: m, sd }));
+                childPts = visits.filter(v => v[meta.field] > 0).map(v => ({ x: v.umur, y: v[meta.field], umur: v.umur, tgl: v.tglKunjungan }));
+                xMin = 0; xMax = maxAge <= 24 ? 24 : 60;
+                const approx = (WHO_DATA.approx[indicator] || []).includes(sx);
+                note = approx ? 'Acuan: titik baku WHO dengan interpolasi' : 'Acuan: tabel WHO per bulan';
+            }
+
+            const line = (idx, label, color, width, dash) => ({
+                label,
+                data: refs.filter(r => r.x >= xMin && r.x <= xMax).map(r => ({ x: r.x, y: r.sd[idx] })),
+                borderColor: color, borderWidth: width, borderDash: dash || [], pointRadius: 0, pointHoverRadius: 0, fill: false, showLine: true, tension: 0
+            });
+
+            const nVisit = childPts.length;
+            sub.textContent = `${balita.nama} • ${meta.label} • ${sx === 'L' ? 'Laki-laki' : 'Perempuan'} • ${nVisit} titik pengukuran • ${note}`;
+
+            growthChartInstance = new Chart(canvas.getContext('2d'), {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        {
+                            label: `Hasil Penimbangan (${balita.nama})`,
+                            data: childPts,
+                            borderColor: '#4f46e5', backgroundColor: '#4f46e5', borderWidth: 3.5,
+                            pointRadius: 6, pointHoverRadius: 8, pointBackgroundColor: '#ffffff', pointBorderColor: '#4f46e5', pointBorderWidth: 3,
+                            showLine: true, tension: 0.2, order: 0
+                        },
+                        line(6, '+3 SD (Batas Atas)', '#ef4444', 1.5, [4, 4]),
+                        line(5, '+2 SD', '#f59e0b', 1.5),
+                        line(3, '0 SD (Median Standar WHO)', '#10b981', 2.5),
+                        line(1, '-2 SD (Batas Stunted/Wasted)', '#f59e0b', 1.5),
+                        line(0, '-3 SD (Batas Severely)', '#ef4444', 1.5, [4, 4])
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'nearest', intersect: false },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function (ctx) {
+                                    const r = ctx.raw || {};
+                                    if (ctx.datasetIndex === 0) {
+                                        const unit = indicator === 'BBU' || indicator === 'BBTB' ? 'kg' : 'cm';
+                                        return `${r.tgl || ''} • umur ${r.umur} bln • ${r.y} ${unit}` + (indicator === 'BBTB' ? ` pada TB ${r.x} cm` : '');
+                                    }
+                                    return `${ctx.dataset.label}: ${Number(r.y).toFixed(1)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear', min: xMin, max: xMax,
+                            title: { display: true, text: meta.xTitle, font: { weight: 'bold' } },
+                            ticks: indicator === 'BBTB' ? { stepSize: 5 } : { stepSize: xMax <= 24 ? 2 : 6 },
+                            grid: { color: '#f1f5f9' }
+                        },
+                        y: {
+                            title: { display: true, text: meta.yTitle, font: { weight: 'bold' } },
+                            grid: { color: '#f1f5f9' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function closeModal(id) {
+            $(id).classList.add('hidden');
+            $(id).classList.remove('flex');
+        }
+
+        /* ============ GOOGLE SHEETS / CLOUD ============ */
+        function openConfigModal() {
+            $('configUrlInput').value = WEB_APP_URL;
+            showModal('modalConfig');
+        }
+
+        function saveCloudConfig() {
+            WEB_APP_URL = $('configUrlInput').value.trim();
+            store.set('posyandu_web_app_url', WEB_APP_URL);
+            closeModal('modalConfig');
+            if (WEB_APP_URL) fetchCloudData();
+            else setCloudStatus('local');
+        }
+
+        function setCloudStatus(mode, detail) {
+            const el = $('cloudStatus');
+            if (!el) return;
+            const dot = (c, pulse) => `<span class="w-2 h-2 rounded-full ${c} inline-block ${pulse ? 'animate-pulse' : ''}"></span>`;
+            if (mode === 'ok') el.innerHTML = `${dot('bg-emerald-400', true)} Mode: Google Drive Cloud (Tersinkron${detail ? ' - ' + esc(detail) : ''})`;
+            else if (mode === 'sync') el.innerHTML = `${dot('bg-sky-400', true)} Menyinkronkan dengan cloud...`;
+            else if (mode === 'error') el.innerHTML = `${dot('bg-red-400', false)} Cloud gagal: ${esc(detail || 'tidak diketahui')} (data lokal tetap aman)`;
+            else el.innerHTML = `${dot('bg-amber-400', false)} Status: Standalone / LocalStorage`;
+        }
+
+        // Gabungkan data cloud dengan data lokal TANPA menghapus data lokal
+        function mergeCloud(cloudBalita, cloudKunjungan) {
+            const kByBalita = {};
+            cloudKunjungan.forEach(k => {
+                const bid = String(k.balita_id ?? '');
+                (kByBalita[bid] = kByBalita[bid] || []).push(k);
+            });
+
+            const localById = {};
+            balitaData.forEach(b => { localById[b.id] = b; });
+
+            const merged = [];
+            const seen = new Set();
+            cloudBalita.forEach(raw => {
+                const c = normalizeBalita({ ...raw, kunjungan: [...(Array.isArray(raw.kunjungan) ? raw.kunjungan : []), ...(kByBalita[String(raw.id)] || [])] });
+                const loc = localById[c.id];
+                if (loc) {
+                    const byId = {};
+                    loc.kunjungan.forEach(k => { byId[k.id] = k; });
+                    c.kunjungan.forEach(k => { byId[k.id] = k; }); // data cloud menang bila id sama
+                    c.kunjungan = Object.values(byId);
+                }
+                seen.add(c.id);
+                merged.push(c);
+            });
+            balitaData.forEach(b => { if (!seen.has(b.id)) merged.push(b); }); // data yang baru ada di perangkat ini
+            balitaData = merged;
+        }
+
+        async function fetchCloudData() {
+            if (!WEB_APP_URL) return;
+            setCloudStatus('sync');
+            try {
+                const res = await fetch(WEB_APP_URL);
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                if (!data || data.status !== 'success' || !Array.isArray(data.balita)) throw new Error('format respons cloud tidak dikenali');
+                mergeCloud(data.balita, Array.isArray(data.kunjungan) ? data.kunjungan : []);
+                persistLocal();
+                setCloudStatus('ok', `${data.balita.length} balita di cloud`);
+                renderBalitaList();
+                if (selectedBalitaId && balitaData.some(b => b.id === selectedBalitaId)) selectBalita(selectedBalitaId);
+            } catch (e) {
+                console.error(e);
+                setCloudStatus('error', e.message);
+            }
+        }
+
+        async function postToCloud(action, payload) {
+            if (!WEB_APP_URL) return;
+            try {
+                // mode no-cors: respons tidak bisa dibaca, jadi keberhasilan tidak dapat dipastikan dari sini
+                await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: action, payload: payload })
+                });
+            } catch (e) {
+                console.error(e);
+                setCloudStatus('error', 'gagal mengirim (' + e.message + ')');
+            }
+        }
+
+        /* ============ EKSPOR CSV ============ */
+        function exportAllToCSV() {
+            const rows = getVisibleBalita(false);
+            if (rows.length === 0) return alert("Tidak ada data!");
+            const q = (s) => `"${String(s ?? '').replace(/"/g, '""')}"`;
+            const zt = (r) => q(`${r.status} (${r.zScore ?? ''})`);
+            let csv = "NIK,Nama Balita,Tgl Lahir,JK,Nama Ortu,Desa,Posyandu,Tgl Kunjungan,Umur (Bln),BB (kg),TB (cm),LK (cm),Z BB/U,Z TB/U,Z BB/TB,Z LK/U\n";
+            rows.forEach(b => {
+                (b.kunjungan || []).forEach(k => {
+                    const bbu = calculateZScore(k.bb, k.umur, b.jk, 'BBU');
+                    const tbu = calculateZScore(k.tb, k.umur, b.jk, 'TBU');
+                    const bbtb = calculateBbtbZScore(k.bb, k.tb, b.jk, k.umur);
+                    const lku = calculateZScore(k.lk, k.umur, b.jk, 'LKU');
+                    csv += [`="${b.nik}"`, q(b.nama), q(b.tglLahir), q(b.jk), q(b.namaOrtu), q(b.desa), q(b.posyandu), q(k.tglKunjungan), k.umur, k.bb ?? '', k.tb ?? '', k.lk ?? '', zt(bbu), zt(tbu), zt(bbtb), zt(lku)].join(',') + "\n";
+                });
+            });
+            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Data_Posyandu_ILP_${todayYmd()}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+        }
+    </script>
+</body>
+</html>
